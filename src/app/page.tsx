@@ -15,7 +15,9 @@ export default async function Page() {
 		const imageSize: string = (data.get('imageSize') || 500) as string;
 		const duration: string | null = (data.get('duration') || 3) as string;
 		const crop: string | undefined = data.get('crop') as string;
-		const mute: string | undefined = data.get('mute') as string;
+		const fps: string | undefined = (data.get('fps') || '18') as string;
+		const outputName: string | undefined = (data.get('outputName') ||
+			'out') as string;
 
 		if (!file) {
 			throw new Error('No file uploaded');
@@ -27,7 +29,9 @@ export default async function Page() {
 		const path = join('./public/', file.name);
 		await writeFile(path, buffer);
 
-		let ffmpegCommand = ffmpeg(path)
+		console.log(fps);
+
+		ffmpeg(path)
 			.duration(duration)
 			.videoFilters([
 				{
@@ -35,6 +39,10 @@ export default async function Page() {
 					options: `${videoSize}:${videoSize}:force_original_aspect_ratio=increase`,
 				},
 
+				{
+					filter: 'fps',
+					options: fps,
+				},
 				!!crop
 					? {
 							filter: 'crop',
@@ -42,7 +50,8 @@ export default async function Page() {
 					  }
 					: { filter: '', options: '' },
 			])
-			.saveToFile(`./public/${file.name.split('.').shift()}.webm`)
+			.noAudio()
+			.saveToFile(`./public/${outputName}.webm`)
 			.on('progress', (progress) => {
 				if (progress.percent) {
 					console.log(`Processing: ${Math.floor(progress.percent)}% done`);
@@ -55,12 +64,7 @@ export default async function Page() {
 				console.error(error);
 			});
 
-		if (!!mute) {
-			ffmpegCommand = ffmpegCommand.noAudio();
-		}
-
-		ffmpegCommand.run();
-
+		console.log(imageSize);
 		ffmpeg(path)
 			.outputOptions(
 				'-vf',
@@ -68,11 +72,11 @@ export default async function Page() {
 					crop ? 'crop=out_w=min(iw\\,ih):out_h=min(iw\\,ih)' : ''
 				}`,
 				'-q:v',
-				'50',
+				'70',
 				'-vcodec',
 				'libwebp'
 			)
-			.output(`./public/${file.name.split('.').shift()}.webp`)
+			.output(`./public/${outputName}-ff.webp`)
 			.on('end', function () {
 				console.log('Finished processing');
 			})
@@ -112,6 +116,18 @@ export default async function Page() {
 						className="input input-primary w-full max-w-xs"
 						name="duration"
 					/>
+					<input
+						type="number"
+						placeholder="FPS"
+						className="input input-primary w-full max-w-xs"
+						name="fps"
+					/>
+					<input
+						type="text"
+						placeholder="Output Name"
+						className="input input-primary w-full max-w-xs"
+						name="outputName"
+					/>
 					<br />
 
 					<label className="label cursor-pointer">
@@ -120,15 +136,6 @@ export default async function Page() {
 							type="checkbox"
 							className="checkbox checkbox-primary"
 							name="crop"
-						/>
-					</label>
-
-					<label className="label cursor-pointer">
-						<span className="label-text">Mute</span>
-						<input
-							type="checkbox"
-							className="checkbox checkbox-primary"
-							name="mute"
 						/>
 					</label>
 
