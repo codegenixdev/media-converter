@@ -20,8 +20,8 @@ export async function Photos() {
 						className="h-56 w-full"
 						src={`/${item}`}
 						alt=""
-						width={500}
-						height={500}
+						width={10000}
+						height={10000}
 					/>
 					<a href={item} download>
 						<button className="btn btn-info w-full">Download</button>
